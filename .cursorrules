@@ -1,0 +1,4 @@
+This is the Next.js 15 project using React 19. 
+This project is using Tailwind for CSS.
+The project is using Sadcn UI for components.
+Every single time we need to run a shadcn command, use `npx shadcn@latest`
