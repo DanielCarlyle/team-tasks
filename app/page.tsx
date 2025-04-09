@@ -9,10 +9,17 @@ import { Column } from "@/app/components/Column"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus } from "lucide-react"
+import { AddTask } from "@/app/components/AddTask"
 
 interface Task {
   id: string
   content: string
+  title: string
+  description: string
+  assignee?: {
+    name: string
+    image?: string
+  }
 }
 
 interface Column {
@@ -30,7 +37,12 @@ export default function Home() {
     todo: {
       id: "todo",
       title: "To Do",
-      tasks: [{id: "task-1", content: "Sample task"}]
+      tasks: [{
+        id: "task-1", 
+        content: "Sample task",
+        title: "Sample task",
+        description: "This is a sample task description"
+      }]
     },
     inProgress: {
       id: "inProgress",
@@ -49,6 +61,20 @@ export default function Home() {
 
   useEffect(() => {
     setIsMounted(true)
+  }, [])
+
+  useEffect(() => {
+    setColumns(prev => ({
+      ...prev,
+      todo: {
+        ...prev.todo,
+        tasks: prev.todo.tasks.map(task => ({
+          ...task,
+          title: task.title || task.content,
+          description: task.description || task.content
+        }))
+      }
+    }))
   }, [])
 
   if (!isMounted) {
@@ -130,23 +156,14 @@ export default function Home() {
     setActiveTask(null)
   }
 
-  const addTask = () => {
-    if (!newTaskContent.trim()) return
-
-    const newTask: Task = {
-      id: `task-${Date.now()}`,
-      content: newTaskContent
-    }
-
+  const handleAddTask = (columnId: string, task: Task) => {
     setColumns(prev => ({
       ...prev,
-      todo: {
-        ...prev.todo,
-        tasks: [newTask, ...prev.todo.tasks]
+      [columnId]: {
+        ...prev[columnId],
+        tasks: [...prev[columnId].tasks, task]
       }
     }))
-
-    setNewTaskContent("")
   }
 
   const deleteTask = (taskId: string) => {
@@ -163,6 +180,84 @@ export default function Home() {
           tasks: columnWithTask.tasks.filter(task => task.id !== taskId)
         }
       }
+      
+      return newColumns
+    })
+  }
+
+  const addTask = () => {
+    if (!newTaskContent.trim()) return
+
+    const newTask: Task = {
+      id: `task-${Date.now()}`,
+      content: newTaskContent,
+      title: newTaskContent,
+      description: newTaskContent
+    }
+
+    setColumns(prev => ({
+      ...prev,
+      todo: {
+        ...prev.todo,
+        tasks: [newTask, ...prev.todo.tasks]
+      }
+    }))
+
+    setNewTaskContent("")
+  }
+
+  const handleTaskUpdate = (taskId: string, updates: Partial<Task>) => {
+    console.log("Updating task:", taskId, updates);
+    setColumns(prev => {
+      const newColumns = { ...prev }
+      
+      // Find which column contains the task
+      Object.keys(newColumns).forEach(columnId => {
+        const column = newColumns[columnId]
+        const taskIndex = column.tasks.findIndex(t => t.id === taskId)
+        
+        if (taskIndex !== -1) {
+          // Update the task in that column
+          newColumns[columnId] = {
+            ...column,
+            tasks: column.tasks.map((t, i) => 
+              i === taskIndex ? { ...t, ...updates } : t
+            )
+          }
+        }
+      })
+      
+      return newColumns
+    })
+  }
+
+  const handleAssigneeChange = (taskId: string, assigneeName: string) => {
+    // Define team members
+    const team = [
+      { name: "John Doe", image: "/avatars/john.png" },
+      { name: "Jane Smith", image: "/avatars/jane.png" },
+      { name: "Alex Johnson", image: "/avatars/alex.png" },
+      { name: "Sam Wilson", image: "/avatars/sam.png" },
+    ]
+    
+    const assignee = team.find(member => member.name === assigneeName)
+    
+    setColumns(prev => {
+      const newColumns = { ...prev }
+      
+      Object.keys(newColumns).forEach(columnId => {
+        const column = newColumns[columnId]
+        const taskIndex = column.tasks.findIndex(t => t.id === taskId)
+        
+        if (taskIndex !== -1) {
+          newColumns[columnId] = {
+            ...column,
+            tasks: column.tasks.map((t, i) => 
+              i === taskIndex ? { ...t, assignee } : t
+            )
+          }
+        }
+      })
       
       return newColumns
     })
@@ -206,6 +301,9 @@ export default function Home() {
                   column={column}
                   tasks={column.tasks}
                   onDeleteTask={deleteTask}
+                  onAddTask={handleAddTask}
+                  onAssigneeChange={handleAssigneeChange}
+                  onTaskUpdate={handleTaskUpdate}
                 />
               ))}
             </SortableContext>

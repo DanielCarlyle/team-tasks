@@ -4,10 +4,17 @@ import { useDroppable } from "@dnd-kit/core"
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable"
 import { TaskCard } from "./TaskCard"
 import { Card } from "@/components/ui/card"
+import { AddTask } from "./AddTask"
 
 interface Task {
   id: string
   content: string
+  title: string
+  description: string
+  assignee?: {
+    name: string
+    image?: string
+  }
 }
 
 interface Column {
@@ -20,9 +27,19 @@ interface ColumnProps {
   column: Column
   tasks: Task[]
   onDeleteTask?: (taskId: string) => void
+  onAddTask?: (columnId: string, task: Task) => void
+  onAssigneeChange?: (taskId: string, assigneeName: string) => void
+  onTaskUpdate?: (taskId: string, updates: Partial<Task>) => void
 }
 
-export function Column({ column, tasks, onDeleteTask }: ColumnProps) {
+export function Column({ 
+  column, 
+  tasks, 
+  onDeleteTask, 
+  onAddTask, 
+  onAssigneeChange, 
+  onTaskUpdate 
+}: ColumnProps) {
   const { setNodeRef } = useDroppable({
     id: column.id,
     data: {
@@ -44,9 +61,25 @@ export function Column({ column, tasks, onDeleteTask }: ColumnProps) {
               key={task.id} 
               task={task} 
               onDelete={onDeleteTask}
+              onAssigneeChange={onAssigneeChange}
+              onTaskUpdate={onTaskUpdate}
             />
           ))}
         </SortableContext>
+      </div>
+      <div className="mt-4">
+        <AddTask onAddTask={(taskData) => {
+          if (onAddTask) {
+            const newTask = {
+              id: crypto.randomUUID(),
+              content: taskData.title,
+              title: taskData.title,
+              description: taskData.description,
+              assignee: taskData.assignee
+            }
+            onAddTask(column.id, newTask)
+          }
+        }} />
       </div>
     </Card>
   )
